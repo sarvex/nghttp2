@@ -13,18 +13,18 @@ def name(i):
 
 for i in range(256):
     if chr(i) == ' ':
-        sys.stdout.write('{} /* SPC  */, '.format(i))
+        sys.stdout.write(f'{i} /* SPC  */, ')
     elif chr(i) == '\t':
-        sys.stdout.write('{} /* HT   */, '.format(i))
-    elif 'A' <= chr(i) and chr(i) <= 'Z':
-        sys.stdout.write('{} /* {}    */, '.format(i - ord('A') + ord('a'), chr(i)))
-    elif (0x21 <= i and i < 0x7f):
-        sys.stdout.write('{} /* {}    */, '.format(i, chr(i)))
-    elif 0x80 <= i:
-        sys.stdout.write('{} /* {} */, '.format(i, hex(i)))
-    elif 0 == i:
-        sys.stdout.write('{} /* NUL  */, '.format(i))
+        sys.stdout.write(f'{i} /* HT   */, ')
+    elif 'A' <= chr(i) <= 'Z':
+        sys.stdout.write(f"{i - ord('A') + ord('a')} /* {chr(i)}    */, ")
+    elif 0x21 <= i < 0x7F:
+        sys.stdout.write(f'{i} /* {chr(i)}    */, ')
+    elif i >= 0x80:
+        sys.stdout.write(f'{i} /* {hex(i)} */, ')
+    elif i == 0:
+        sys.stdout.write(f'{i} /* NUL  */, ')
     else:
-        sys.stdout.write('{} /* {} */, '.format(i, name(i)))
+        sys.stdout.write(f'{i} /* {name(i)} */, ')
     if (i + 1)%4 == 0:
         sys.stdout.write('\n')

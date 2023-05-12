@@ -22,13 +22,13 @@ _PORT = 9893
 
 def _run_server(port, args):
   srcdir = os.environ.get('srcdir', '.')
-  testdata = '%s/testdata' % srcdir
+  testdata = f'{srcdir}/testdata'
   top_builddir = os.environ.get('top_builddir', '..')
-  base_args = ['%s/src/spdyd' % top_builddir, '-d', testdata]
+  base_args = [f'{top_builddir}/src/spdyd', '-d', testdata]
   if args:
     base_args.extend(args)
-  base_args.extend([str(port), '%s/privkey.pem' % testdata,
-                    '%s/cacert.pem' % testdata])
+  base_args.extend(
+      [str(port), f'{testdata}/privkey.pem', f'{testdata}/cacert.pem'])
   return subprocess.Popen(base_args)
 
 def _check_server_up(port):
@@ -58,7 +58,7 @@ class EndToEndSpdyTests(unittest.TestCase):
 
   def setUp(self):
     build_dir = os.environ.get('top_builddir', '..')
-    self.client = '%s/src/spdycat' % build_dir
+    self.client = f'{build_dir}/src/spdycat'
     self.stdout = 'No output'
 
   def call(self, path, args):

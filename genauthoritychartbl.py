@@ -13,20 +13,40 @@ def name(i):
         return 'DEL '
 
 for i in range(256):
-    if chr(i) in [
-        "-", ".", "_", "~",
-        "!", "$", "&", "'", "(", ")",
-        "*", "+", ",", ";", "=",
-        "%", "@", ":", "[", "]"] or\
-        ('0' <= chr(i) and chr(i) <= '9') or \
-        ('A' <= chr(i) and chr(i) <= 'Z') or \
-        ('a' <= chr(i) and chr(i) <= 'z'):
-        sys.stdout.write('1 /* {}    */, '.format(chr(i)))
-    elif (0x21 <= i and i < 0x7f):
-        sys.stdout.write('0 /* {}    */, '.format(chr(i)))
-    elif 0x80 <= i:
-        sys.stdout.write('0 /* {} */, '.format(hex(i)))
+    if (
+        chr(i)
+        in {
+            "-",
+            ".",
+            "_",
+            "~",
+            "!",
+            "$",
+            "&",
+            "'",
+            "(",
+            ")",
+            "*",
+            "+",
+            ",",
+            ";",
+            "=",
+            "%",
+            "@",
+            ":",
+            "[",
+            "]",
+        }
+        or '0' <= chr(i) <= '9'
+        or 'A' <= chr(i) <= 'Z'
+        or 'a' <= chr(i) <= 'z'
+    ):
+        sys.stdout.write(f'1 /* {chr(i)}    */, ')
+    elif 0x21 <= i < 0x7F:
+        sys.stdout.write(f'0 /* {chr(i)}    */, ')
+    elif i >= 0x80:
+        sys.stdout.write(f'0 /* {hex(i)} */, ')
     else:
-        sys.stdout.write('0 /* {} */, '.format(name(i)))
+        sys.stdout.write(f'0 /* {name(i)} */, ')
     if (i + 1)%4 == 0:
         sys.stdout.write('\n')

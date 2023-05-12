@@ -362,7 +362,7 @@ NGHTTP2_HUFF_SYM = 1 << 15
 def _print_transition_table(node):
     if node.term is not None:
         return
-    print('/* {} */'.format(node.id))
+    print(f'/* {node.id} */')
     print('{')
     for nd, sym in node.trans:
         flags = 0
@@ -410,16 +410,16 @@ def huffman_tree_print_transition_table(ctx):
 
 if __name__ == '__main__':
     ctx = Context()
-    symbol_tbl = [(None, 0) for i in range(257)]
+    symbol_tbl = [(None, 0) for _ in range(257)]
 
     for line in StringIO(HUFFMAN_CODE_TABLE):
-        m = re.match(
-            r'.*\(\s*(\d+)\)\s+([|01]+)\s+(\S+)\s+\[\s*(\d+)\].*', line)
-        if m:
-            sym = int(m.group(1))
-            bits = re.sub(r'\|', '', m.group(2))
-            code = m.group(3)
-            nbits = int(m.group(4))
+        if m := re.match(
+            r'.*\(\s*(\d+)\)\s+([|01]+)\s+(\S+)\s+\[\s*(\d+)\].*', line
+        ):
+            sym = int(m[1])
+            bits = re.sub(r'\|', '', m[2])
+            code = m[3]
+            nbits = int(m[4])
             if len(code) > 8:
                 raise Error('Code is more than 4 bytes long')
             assert(len(bits) == nbits)
@@ -441,7 +441,7 @@ const nghttp2_huff_sym huff_sym_table[] = {''')
     for i in range(257):
         nbits = symbol_tbl[i][0]
         k = int(symbol_tbl[i][1], 16)
-        k = k << (32 - nbits)
+        k <<= 32 - nbits
         print('''\
   {{ {}, 0x{}u }}{}\
 '''.format(symbol_tbl[i][0], hex(k)[2:], ',' if i < 256 else ''))

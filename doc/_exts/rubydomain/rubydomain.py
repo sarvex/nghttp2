@@ -50,7 +50,7 @@ def _iteritems(d):
 
 
 def ruby_rsplit(fullname):
-    items = [item for item in rb_separator.findall(fullname)]
+    items = list(rb_separator.findall(fullname))
     return ''.join(items[:-2]), items[-1]
 
 
@@ -138,8 +138,7 @@ class RubyObject(ObjectDescription):
         signode['class'] = self.class_name = classname
         signode['fullname'] = fullname
 
-        sig_prefix = self.get_signature_prefix(sig)
-        if sig_prefix:
+        if sig_prefix := self.get_signature_prefix(sig):
             signode += addnodes.desc_annotation(sig_prefix, sig_prefix)
 
         if name_prefix:
@@ -178,9 +177,7 @@ class RubyObject(ObjectDescription):
                     stack.pop()
                 except IndexError:
                     raise ValueError
-            elif not token or token == ',' or token.isspace():
-                pass
-            else:
+            elif token and token != ',' and not token.isspace():
                 token = token.strip()
                 stack[-1] += addnodes.desc_parameter(token, token)
         if len(stack) != 1:
@@ -207,7 +204,7 @@ class RubyObject(ObjectDescription):
         separator = separators[self.objtype]
         if self._is_class_member():
             if signode['class']:
-                prefix = modname and modname + '::' or ''
+                prefix = modname and f'{modname}::' or ''
             else:
                 prefix = modname and modname + separator or ''
         else:
@@ -223,14 +220,12 @@ class RubyObject(ObjectDescription):
             if fullname in objects:
                 self.env.warn(
                     self.env.docname,
-                    'duplicate object description of %s, ' % fullname +
-                    'other instance in ' +
-                    self.env.doc2path(objects[fullname][0]),
-                    self.lineno)
+                    f'duplicate object description of {fullname}, other instance in {self.env.doc2path(objects[fullname][0])}',
+                    self.lineno,
+                )
             objects[fullname] = (self.env.docname, self.objtype)
 
-        indextext = self.get_index_text(modname, name_cls)
-        if indextext:
+        if indextext := self.get_index_text(modname, name_cls):
             self.indexnode['entries'].append(
                 _make_index('single', indextext, fullname, fullname))
 
@@ -252,12 +247,11 @@ class RubyModulelevel(RubyObject):
         return self.objtype == 'function'
 
     def get_index_text(self, modname, name_cls):
-        if self.objtype == 'function':
-            if not modname:
-                return _('%s() (global function)') % name_cls[0]
-            return _('%s() (module function in %s)') % (name_cls[0], modname)
-        else:
+        if self.objtype != 'function':
             return ''
+        if not modname:
+            return _('%s() (global function)') % name_cls[0]
+        return _('%s() (module function in %s)') % (name_cls[0], modname)
 
 
 class RubyGloballevel(RubyObject):
@@ -283,21 +277,17 @@ class RubyEverywhere(RubyObject):
     def get_index_text(self, modname, name_cls):
         name, cls = name_cls
         add_modules = self.env.config.add_module_names
-        if self.objtype == 'method':
-            try:
-                clsname, methname = ruby_rsplit(name)
-            except ValueError:
-                if modname:
-                    return _('%s() (in module %s)') % (name, modname)
-                else:
-                    return '%s()' % name
-            if modname and add_modules:
-                return _('%s() (%s::%s method)') % (methname, modname,
-                                                          clsname)
-            else:
-                return _('%s() (%s method)') % (methname, clsname)
-        else:
+        if self.objtype != 'method':
             return ''
+        try:
+            clsname, methname = ruby_rsplit(name)
+        except ValueError:
+            return _('%s() (in module %s)') % (name, modname) if modname else f'{name}()'
+        return (
+            _('%s() (%s::%s method)') % (methname, modname, clsname)
+            if modname and add_modules
+            else _('%s() (%s method)') % (methname, clsname)
+        )
 
 
 class RubyClasslike(RubyObject):
@@ -306,7 +296,7 @@ class RubyClasslike(RubyObject):
     """
 
     def get_signature_prefix(self, sig):
-        return self.objtype + ' '
+        return f'{self.objtype} '
 
     def get_index_text(self, modname, name_cls):
         if self.objtype == 'class':
@@ -335,7 +325,7 @@ class RubyClassmember(RubyObject):
 
     def get_signature_prefix(self, sig):
         if self.objtype == 'classmethod':
-            return "classmethod %s." % self.class_name
+            return f"classmethod {self.class_name}."
         elif self.objtype == 'attr_reader':
             return "attribute [R] "
         elif self.objtype == 'attr_writer':
@@ -351,7 +341,7 @@ class RubyClassmember(RubyObject):
             try:
                 clsname, methname = ruby_rsplit(name)
             except ValueError:
-                return '%s()' % name
+                return f'{name}()'
             if modname:
                 return _('%s() (%s.%s class method)') % (methname, modname,
                                                          clsname)
@@ -399,9 +389,9 @@ class RubyModule(Directive):
         noindex = 'noindex' in self.options
         env.temp_data['rb:module'] = modname
         env.domaindata['rb']['modules'][modname] = \
-            (env.docname, self.options.get('synopsis', ''),
+                (env.docname, self.options.get('synopsis', ''),
              self.options.get('platform', ''), 'deprecated' in self.options)
-        targetnode = nodes.target('', '', ids=['module-' + modname], ismod=True)
+        targetnode = nodes.target('', '', ids=[f'module-{modname}'], ismod=True)
         self.state.document.note_explicit_target(targetnode)
         ret = [targetnode]
         # XXX this behavior of the module directive is a mess...
@@ -415,8 +405,11 @@ class RubyModule(Directive):
         # modindex currently
         if not noindex:
             indextext = _('%s (module)') % modname
-            inode = addnodes.index(entries=[_make_index(
-                'single', indextext, 'module-' + modname, modname)])
+            inode = addnodes.index(
+                entries=[
+                    _make_index('single', indextext, f'module-{modname}', modname)
+                ]
+            )
             ret.append(inode)
         return ret
 
@@ -444,10 +437,7 @@ class RubyCurrentModule(Directive):
     def run(self):
         env = self.state.document.settings.env
         modname = self.arguments[0].strip()
-        if modname == 'None':
-            env.temp_data['rb:module'] = None
-        else:
-            env.temp_data['rb:module'] = modname
+        env.temp_data['rb:module'] = None if modname == 'None' else modname
         return []
 
 
@@ -461,16 +451,15 @@ class RubyXRefRole(XRefRole):
             target = target.lstrip('~') # only has a meaning for the title
             # if the first character is a tilde, don't display the module/class
             # parts of the contents
-            if title[0:1] == '~':
-                m = re.search(r"(?:\.)?(?:#)?(?:::)?(.*)\Z", title)
-                if m:
-                    title = m.group(1)
+            if title[:1] == '~':
+                if m := re.search(r"(?:\.)?(?:#)?(?:::)?(.*)\Z", title):
+                    title = m[1]
         if not title.startswith("$"):
             refnode['rb:module'] = env.temp_data.get('rb:module')
             refnode['rb:class'] = env.temp_data.get('rb:class')
         # if the first character is a dot, search more specific namespaces first
         # else search builtins first
-        if target[0:1] == '.':
+        if target[:1] == '.':
             target = target[1:]
             refnode['refspecific'] = True
         return title, target
@@ -529,9 +518,17 @@ class RubyModuleIndex(Index):
                 subtype = 0
 
             qualifier = deprecated and _('Deprecated') or ''
-            entries.append([stripped + modname, subtype, docname,
-                            'module-' + stripped + modname, platforms,
-                            qualifier, synopsis])
+            entries.append(
+                [
+                    stripped + modname,
+                    subtype,
+                    docname,
+                    f'module-{stripped}{modname}',
+                    platforms,
+                    qualifier,
+                    synopsis,
+                ]
+            )
             prev_modname = modname
 
         # apply heuristics when to collapse modindex at page load:
@@ -621,69 +618,70 @@ class RubyDomain(Domain):
 
         newname = None
         if searchorder == 1:
-            if modname and classname and \
-                     modname + '::' + classname + '#' + name in objects:
-                newname = modname + '::' + classname + '#' + name
-            elif modname and classname and \
-                     modname + '::' + classname + '.' + name in objects:
-                newname = modname + '::' + classname + '.' + name
-            elif modname and modname + '::' + name in objects:
-                newname = modname + '::' + name
-            elif modname and modname + '#' + name in objects:
-                newname = modname + '#' + name
-            elif modname and modname + '.' + name in objects:
-                newname = modname + '.' + name
-            elif classname and classname + '.' + name in objects:
-                newname = classname + '.' + name
-            elif classname and classname + '#' + name in objects:
-                newname = classname + '#' + name
+            if (
+                modname
+                and classname
+                and f'{modname}::{classname}#{name}' in objects
+            ):
+                newname = f'{modname}::{classname}#{name}'
+            elif (
+                modname
+                and classname
+                and f'{modname}::{classname}.{name}' in objects
+            ):
+                newname = f'{modname}::{classname}.{name}'
+            elif modname and f'{modname}::{name}' in objects:
+                newname = f'{modname}::{name}'
+            elif modname and f'{modname}#{name}' in objects:
+                newname = f'{modname}#{name}'
+            elif modname and f'{modname}.{name}' in objects:
+                newname = f'{modname}.{name}'
+            elif classname and f'{classname}.{name}' in objects:
+                newname = f'{classname}.{name}'
+            elif classname and f'{classname}#{name}' in objects:
+                newname = f'{classname}#{name}'
             elif name in objects:
                 newname = name
-        else:
-            if name in objects:
-                newname = name
-            elif classname and classname + '.' + name in objects:
-                newname = classname + '.' + name
-            elif classname and classname + '#' + name in objects:
-                newname = classname + '#' + name
-            elif modname and modname + '::' + name in objects:
-                newname = modname + '::' + name
-            elif modname and modname + '#' + name in objects:
-                newname = modname + '#' + name
-            elif modname and modname + '.' + name in objects:
-                newname = modname + '.' + name
-            elif modname and classname and \
-                     modname + '::' + classname + '#' + name in objects:
-                newname = modname + '::' + classname + '#' + name
-            elif modname and classname and \
-                     modname + '::' + classname + '.' + name in objects:
-                newname = modname + '::' + classname + '.' + name
-            # special case: object methods
-            elif type in ('func', 'meth') and '.' not in name and \
-                 'object.' + name in objects:
-                newname = 'object.' + name
-        if newname is None:
-            return None, None
-        return newname, objects[newname]
+        elif name in objects:
+            newname = name
+        elif classname and f'{classname}.{name}' in objects:
+            newname = f'{classname}.{name}'
+        elif classname and f'{classname}#{name}' in objects:
+            newname = f'{classname}#{name}'
+        elif modname and f'{modname}::{name}' in objects:
+            newname = f'{modname}::{name}'
+        elif modname and f'{modname}#{name}' in objects:
+            newname = f'{modname}#{name}'
+        elif modname and f'{modname}.{name}' in objects:
+            newname = f'{modname}.{name}'
+        elif modname and classname and f'{modname}::{classname}#{name}' in objects:
+            newname = f'{modname}::{classname}#{name}'
+        elif modname and classname and f'{modname}::{classname}.{name}' in objects:
+            newname = f'{modname}::{classname}.{name}'
+        elif (
+            type in ('func', 'meth')
+            and '.' not in name
+            and f'object.{name}' in objects
+        ):
+            newname = f'object.{name}'
+        return (None, None) if newname is None else (newname, objects[newname])
 
     def resolve_xref(self, env, fromdocname, builder,
                      typ, target, node, contnode):
         if (typ == 'mod' or
             typ == 'obj' and target in self.data['modules']):
             docname, synopsis, platform, deprecated = \
-                self.data['modules'].get(target, ('','','', ''))
+                    self.data['modules'].get(target, ('','','', ''))
             if not docname:
                 return None
-            else:
-                title = '%s%s%s' % ((platform and '(%s) ' % platform),
-                                    synopsis,
-                                    (deprecated and ' (deprecated)' or ''))
-                return make_refnode(builder, fromdocname, docname,
-                                    'module-' + target, contnode, title)
+            title = f"{platform and f'({platform}) '}{synopsis}{deprecated and ' (deprecated)' or ''}"
+            return make_refnode(
+                builder, fromdocname, docname, f'module-{target}', contnode, title
+            )
         else:
             modname = node.get('rb:module')
             clsname = node.get('rb:class')
-            searchorder = node.hasattr('refspecific') and 1 or 0
+            searchorder = 1 if node.hasattr('refspecific') else 0
             name, obj = self.find_obj(env, modname, clsname,
                                       target, typ, searchorder)
             if not obj:
@@ -694,7 +692,7 @@ class RubyDomain(Domain):
 
     def get_objects(self):
         for modname, info in _iteritems(self.data['modules']):
-            yield (modname, modname, 'module', info[0], 'module-' + modname, 0)
+            yield (modname, modname, 'module', info[0], f'module-{modname}', 0)
         for refname, (docname, type) in _iteritems(self.data['objects']):
             yield (refname, refname, type, docname, refname, 1)
 

@@ -22,15 +22,16 @@ def hd_map_hash(name):
 
 entries = []
 for line in sys.stdin:
-    m = re.match(r'(\d+)\s+(\S+)\s+(\S.*)?', line)
-    val = m.group(3).strip() if m.group(3) else ''
-    entries.append((int(m.group(1)), m.group(2), val))
+  m = re.match(r'(\d+)\s+(\S+)\s+(\S.*)?', line)
+  val = m[3].strip() if m[3] else ''
+  entries.append((int(m[1]), m[2], val))
 
 print('static nghttp2_hd_entry static_table[] = {')
 idx = 0
 for i, ent in enumerate(entries):
-    if entries[idx][1] != ent[1]:
-        idx = i
-    print('MAKE_STATIC_ENT("{}", "{}", {}, {}u),'\
-        .format(ent[1], ent[2], entries[idx][0] - 1, hd_map_hash(ent[1])))
+  if entries[idx][1] != ent[1]:
+      idx = i
+  print(
+      f'MAKE_STATIC_ENT("{ent[1]}", "{ent[2]}", {entries[idx][0] - 1}, {hd_map_hash(ent[1])}u),'
+  )
 print('};')

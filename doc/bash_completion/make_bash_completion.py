@@ -22,8 +22,8 @@ def get_all_options(cmd):
         match = opt_pattern.match(line)
         if not match:
             continue
-        long_opt = match.group(2)
-        short_opt = match.group(1)
+        long_opt = match[2]
+        short_opt = match[1]
         opts[long_opt] = Option(long_opt, short_opt)
 
     return opts

@@ -74,7 +74,7 @@ HEADERS = [
 def to_enum_hd(k):
     res = 'NGHTTP2_TOKEN_'
     for c in k.upper():
-        if c == ':' or c == '-':
+        if c in [':', '-']:
             res += '_'
             continue
         res += c
@@ -100,11 +100,10 @@ def gen_enum():
     print('typedef enum {')
     for k, token in HEADERS:
         if token is None:
-            print('  {},'.format(to_enum_hd(k)))
-        else:
-            if name != k:
-                name = k
-                print('  {} = {},'.format(to_enum_hd(k), token))
+            print(f'  {to_enum_hd(k)},')
+        elif name != k:
+            name = k
+            print(f'  {to_enum_hd(name)} = {token},')
     print('} nghttp2_token;')
 
 def gen_index_header():

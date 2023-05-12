@@ -309,7 +309,7 @@ print('''\
 enum {''')
 
 for id, name in ciphers:
-    print('{} = {},'.format(name, id))
+    print(f'{name} = {id},')
 
 print('''\
 };
@@ -320,6 +320,6 @@ for id, name in ciphers:
 case {}:'''.format(name))
 
 if len(found) != len(blacklist):
-    print('{} found out of {}; not all cipher was found: {}'.format(
-        len(found), len(blacklist),
-        found.symmetric_difference(blacklist)))
+    print(
+        f'{len(found)} found out of {len(blacklist)}; not all cipher was found: {found.symmetric_difference(blacklist)}'
+    )

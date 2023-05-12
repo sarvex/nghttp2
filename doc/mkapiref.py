@@ -35,14 +35,14 @@ class FunctionDoc:
         self.content = content
         self.domain = domain
         if self.domain == 'function':
-            self.funcname = re.search(r'(nghttp2_[^ )]+)\(', self.name).group(1)
+            self.funcname = re.search(r'(nghttp2_[^ )]+)\(', self.name)[1]
         self.filename = filename
 
     def write(self, out):
-        out.write('.. {}:: {}\n'.format(self.domain, self.name))
+        out.write(f'.. {self.domain}:: {self.name}\n')
         out.write('\n')
         for line in self.content:
-            out.write('    {}\n'.format(line))
+            out.write(f'    {line}\n')
 
 class StructDoc:
     def __init__(self, name, content, members, member_domain):
@@ -52,18 +52,19 @@ class StructDoc:
         self.member_domain = member_domain
 
     def write(self, out):
-        if self.name:
-            out.write('.. type:: {}\n'.format(self.name))
+        if not self.name:
+            return
+        out.write(f'.. type:: {self.name}\n')
+        out.write('\n')
+        for line in self.content:
+            out.write(f'    {line}\n')
+        out.write('\n')
+        for name, content in self.members:
+            out.write(f'    .. {self.member_domain}:: {name}\n')
             out.write('\n')
-            for line in self.content:
-                out.write('    {}\n'.format(line))
-            out.write('\n')
-            for name, content in self.members:
-                out.write('    .. {}:: {}\n'.format(self.member_domain, name))
-                out.write('\n')
-                for line in content:
-                    out.write('        {}\n'.format(line))
-            out.write('\n')
+            for line in content:
+                out.write(f'        {line}\n')
+        out.write('\n')
 
 class EnumDoc:
     def __init__(self, name, content, members):
@@ -72,18 +73,19 @@ class EnumDoc:
         self.members = members
 
     def write(self, out):
-        if self.name:
-            out.write('.. type:: {}\n'.format(self.name))
+        if not self.name:
+            return
+        out.write(f'.. type:: {self.name}\n')
+        out.write('\n')
+        for line in self.content:
+            out.write(f'    {line}\n')
+        out.write('\n')
+        for name, content in self.members:
+            out.write(f'    .. enum:: {name}\n')
             out.write('\n')
-            for line in self.content:
-                out.write('    {}\n'.format(line))
-            out.write('\n')
-            for name, content in self.members:
-                out.write('    .. enum:: {}\n'.format(name))
-                out.write('\n')
-                for line in content:
-                    out.write('        {}\n'.format(line))
-            out.write('\n')
+            for line in content:
+                out.write(f'        {line}\n')
+        out.write('\n')
 
 class MacroDoc:
     def __init__(self, name, content):
@@ -91,10 +93,10 @@ class MacroDoc:
         self.content = content
 
     def write(self, out):
-        out.write('''.. macro:: {}\n'''.format(self.name))
+        out.write(f'''.. macro:: {self.name}\n''')
         out.write('\n')
         for line in self.content:
-            out.write('    {}\n'.format(line))
+            out.write(f'    {line}\n')
 
 class MacroSectionDoc:
     def __init__(self, content):
@@ -114,10 +116,10 @@ class TypedefDoc:
         self.content = content
 
     def write(self, out):
-        out.write('''.. type:: {}\n'''.format(self.name))
+        out.write(f'''.. type:: {self.name}\n''')
         out.write('\n')
         for line in self.content:
-            out.write('    {}\n'.format(line))
+            out.write(f'    {line}\n')
 
 def make_api_ref(infile):
     macros = []
@@ -135,7 +137,7 @@ def make_api_ref(infile):
                 functions.append(process_function('function', infile))
             elif doctype == '@functypedef':
                 types.append(process_function('type', infile))
-            elif doctype == '@struct' or doctype == '@union':
+            elif doctype in ['@struct', '@union']:
                 types.append(process_struct(infile))
             elif doctype == '@enum':
                 enums.append(process_enum(infile))
@@ -237,8 +239,7 @@ def process_enum(infile):
             items = line.split()
             member_name = items[0].rstrip(',')
             if len(items) >= 3:
-                member_content.insert(0, '(``{}``) '\
-                                      .format(' '.join(items[2:]).rstrip(',')))
+                member_content.insert(0, f"(``{' '.join(items[2:]).rstrip(',')}``) ")
             members.append((member_name, member_content))
         elif line.startswith('}'):
             enum_name = line.rstrip().split()[1]
@@ -261,10 +262,7 @@ def process_struct(infile):
             members.append((member_name, member_content))
         elif line.startswith('}') or\
                 (line.startswith('typedef ') and line.endswith(';\n')):
-            if line.startswith('}'):
-                index = 1
-            else:
-                index = 3
+            index = 1 if line.startswith('}') else 3
             struct_name = line.rstrip().split()[index]
             struct_name = re.sub(r';$', '', struct_name)
             break
@@ -275,9 +273,7 @@ def process_function(domain, infile):
     func_proto = []
     while True:
         line = infile.readline()
-        if not line:
-            break
-        elif line == '\n':
+        if not line or line == '\n':
             break
         else:
             func_proto.append(line)

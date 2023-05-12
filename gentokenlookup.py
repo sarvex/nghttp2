@@ -3,7 +3,7 @@
 def to_enum_hd(k, prefix):
     res = prefix
     for c in k.upper():
-        if c == ':' or c == '-':
+        if c in [':', '-']:
             res += '_'
             continue
         res += c

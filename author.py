@@ -23,12 +23,10 @@ for line in sys.stdin:
     if email in edict:
         an = edict[email]
         if len(an) < len(author) or an > author:
-            sys.stderr.write(
-                'eliminated {} in favor of {}\n'.format(an, author))
+            sys.stderr.write(f'eliminated {an} in favor of {author}\n')
             edict[email] = author
         else:
-            sys.stderr.write(
-                'eliminated {} in favor of {}\n'.format(author, an))
+            sys.stderr.write(f'eliminated {author} in favor of {an}\n')
     else:
         edict[email] = author
 
@@ -41,10 +39,10 @@ for name in names:
     if lowname in ndict:
         an = ndict[lowname]
         if an > name:
-            sys.stderr.write('eliminated {} in favor of {}\n'.format(an, name))
+            sys.stderr.write(f'eliminated {an} in favor of {name}\n')
             ndict[lowname] = name
         else:
-            sys.stderr.write('eliminated {} in favor of {}\n'.format(name, an))
+            sys.stderr.write(f'eliminated {name} in favor of {an}\n')
     else:
         ndict[lowname] = name
 
